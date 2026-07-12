@@ -1,7 +1,9 @@
+#include <Arduino.h>         /* millis() (core_pins.h, transitively) for eth_resolve's timeout */
 #include "socket_lwip.h"
 #include "lwip/priv/tcp_priv.h"
 #include "ethernetif.h"     /* ethernetif_poll */
 #include "lwip/timeouts.h"
+#include "lwip/dns.h"
 
 extern "C" { tcp_conn_t eth_conns[ETH_MAX_SOCK_NUM]; }
 
@@ -104,4 +106,21 @@ int eth_conn_read(int i, uint8_t *buf, int len) {
         }
     }
     return got ? got : -1;
+}
+
+struct dns_wait { volatile int done; volatile int ok; ip_addr_t addr; };
+static void eth_dns_cb(const char *name, const ip_addr_t *ipaddr, void *arg) {
+    (void)name; struct dns_wait *w = (struct dns_wait *)arg;
+    if (ipaddr) { w->addr = *ipaddr; w->ok = 1; } else w->ok = 0;
+    w->done = 1;
+}
+int eth_resolve(const char *host, ip_addr_t *out, uint32_t timeout_ms) {
+    struct dns_wait w; w.done = 0; w.ok = 0;
+    err_t e = dns_gethostbyname(host, &w.addr, eth_dns_cb, &w);
+    if (e == ERR_OK) { *out = w.addr; return 1; }          /* cached */
+    if (e != ERR_INPROGRESS) return 0;
+    uint32_t t0 = millis();
+    while (!w.done) { eth_pump(); if (millis() - t0 > timeout_ms) return 0; }
+    if (w.ok) { *out = w.addr; return 1; }
+    return 0;
 }

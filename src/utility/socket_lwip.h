@@ -34,6 +34,8 @@ int   eth_conn_available(int i);        /* unread bytes in the rx chain */
 int   eth_conn_read(int i, uint8_t *buf, int len);  /* drain + tcp_recved; -1 if none */
 int   eth_conn_peek(int i);             /* first unread byte or -1 */
 
+int   eth_resolve(const char *host, ip_addr_t *out, uint32_t timeout_ms);  /* 1 ok, 0 fail */
+
 /* raw callbacks (exposed so EthernetServer's accept can share them) */
 err_t eth_recv_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err);
 err_t eth_sent_cb(void *arg, struct tcp_pcb *pcb, uint16_t len);

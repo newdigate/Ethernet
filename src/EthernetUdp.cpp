@@ -61,7 +61,12 @@ void EthernetUDP::flush() { if (_cur) { pbuf_free((struct pbuf*)_cur); _cur=null
 int EthernetUDP::beginPacket(IPAddress ip, uint16_t port) {
     IP_ADDR4(&_dip, ip[0],ip[1],ip[2],ip[3]); _dport = port; _txlen = 0; return 1;
 }
-int EthernetUDP::beginPacket(const char *host, uint16_t port) { (void)host;(void)port; return 0; } /* Task 6 */
+int EthernetUDP::beginPacket(const char *host, uint16_t port) {
+    ip_addr_t a;
+    if (!eth_resolve(host, &a, 8000)) return 0;
+    uint32_t v = ip_2_ip4(&a)->addr;
+    return beginPacket(IPAddress(v&0xff,(v>>8)&0xff,(v>>16)&0xff,(v>>24)&0xff), port);
+}
 
 size_t EthernetUDP::write(uint8_t b) { return write(&b, 1); }
 size_t EthernetUDP::write(const uint8_t *buf, size_t size) {

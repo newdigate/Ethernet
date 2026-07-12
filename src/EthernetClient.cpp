@@ -28,7 +28,12 @@ int EthernetClient::connect(IPAddress ip, uint16_t port) {
     return 1;
 }
 
-int EthernetClient::connect(const char *host, uint16_t port) { (void)host;(void)port; return 0; } /* Task 6 */
+int EthernetClient::connect(const char *host, uint16_t port) {
+    ip_addr_t a;
+    if (!eth_resolve(host, &a, 8000)) return 0;
+    uint32_t v = ip_2_ip4(&a)->addr;
+    return connect(IPAddress(v&0xff,(v>>8)&0xff,(v>>16)&0xff,(v>>24)&0xff), port);
+}
 
 size_t EthernetClient::write(uint8_t b) { return write(&b, 1); }
 
