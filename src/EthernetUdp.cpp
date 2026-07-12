@@ -20,6 +20,7 @@ void EthernetUDP::_enqueue(void *p, const ip_addr_t *addr, uint16_t port) {
 EthernetUDP::EthernetUDP() : _pcb(nullptr), _rxh(0), _rxt(0), _cur(nullptr), _cur_off(0), _txlen(0) {}
 
 uint8_t EthernetUDP::begin(uint16_t port) {
+    stop();                          /* free any pcb/ring from a prior begin() */
     struct udp_pcb *pcb = udp_new();
     if (!pcb) return 0;
     if (udp_bind(pcb, IP_ANY_TYPE, port) != ERR_OK) { udp_remove(pcb); return 0; }

@@ -16,6 +16,7 @@ typedef struct {
     ip_addr_t       remote_ip;
     uint16_t        remote_port;
     uint16_t        accept_port;    /* listening port a server conn arrived on; 0 for outbound */
+    uint16_t        gen;            /* bumped on each alloc; EthernetClient snapshots it to detect slot reuse */
 } tcp_conn_t;
 
 #ifdef __cplusplus

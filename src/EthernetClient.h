@@ -3,8 +3,8 @@
 #include "Client.h"
 class EthernetClient : public Client {
 public:
-    EthernetClient() : _sock(-1) {}
-    explicit EthernetClient(int s) : _sock(s) {}
+    EthernetClient();
+    explicit EthernetClient(int s);
     int connect(IPAddress ip, uint16_t port) override;
     int connect(const char *host, uint16_t port) override;
     size_t write(uint8_t b) override;
@@ -19,5 +19,8 @@ public:
     operator bool() override;
     using Print::write;
     int _sock;
+    uint16_t _gen;
+private:
+    bool _valid() const;
 };
 #endif

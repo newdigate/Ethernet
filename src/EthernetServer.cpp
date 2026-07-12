@@ -58,7 +58,9 @@ EthernetClient EthernetServer::accept() {
     eth_server_reap(_port);
     for (int i = 0; i < ETH_MAX_SOCK_NUM; i++) {
         tcp_conn_t *c = &eth_conns[i];
-        if (c->state == CONN_ESTABLISHED && c->accept_port == _port) {
+        if (c->accept_port == _port &&
+            (c->state == CONN_ESTABLISHED ||
+             ((c->state == CONN_CLOSING || c->state == CONN_CLOSED) && eth_conn_available(i) > 0))) {
             c->accept_port = 0;            /* hand off once (ownership transfer) */
             return EthernetClient(i);
         }
@@ -71,7 +73,7 @@ size_t EthernetServer::write(const uint8_t *buf, size_t size) {
     size_t n = 0;
     for (int i = 0; i < ETH_MAX_SOCK_NUM; i++)
         if (eth_conns[i].state != CONN_FREE && eth_conns[i].accept_port == _port) {
-            EthernetClient c(i); n = c.write(buf, size);
+            EthernetClient c(i); n += c.write(buf, size);
         }
     return n;
 }

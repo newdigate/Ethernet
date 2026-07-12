@@ -24,7 +24,9 @@ void eth_pump(void) {
 int eth_conn_alloc(void) {
     for (int i = 0; i < ETH_MAX_SOCK_NUM; i++)
         if (eth_conns[i].state == CONN_FREE) {
+            uint16_t g = eth_conns[i].gen;
             eth_conns[i] = (tcp_conn_t){0};
+            eth_conns[i].gen = (uint16_t)(g + 1);   /* invalidates any retained client on this slot */
             eth_conns[i].state = CONN_CONNECTING;   /* claimed; caller sets real state */
             return i;
         }
@@ -41,6 +43,7 @@ void eth_conn_free(int i) {
         if (tcp_close(c->pcb) != ERR_OK) tcp_abort(c->pcb);
         c->pcb = nullptr;
     }
+    c->accept_port = 0;
     c->state = CONN_FREE;
 }
 
@@ -108,19 +111,22 @@ int eth_conn_read(int i, uint8_t *buf, int len) {
     return got ? got : -1;
 }
 
-struct dns_wait { volatile int done; volatile int ok; ip_addr_t addr; };
+static struct { volatile int done, ok; ip_addr_t addr; volatile uint32_t gen; } s_dns = {0,0,{0},0};
 static void eth_dns_cb(const char *name, const ip_addr_t *ipaddr, void *arg) {
-    (void)name; struct dns_wait *w = (struct dns_wait *)arg;
-    if (ipaddr) { w->addr = *ipaddr; w->ok = 1; } else w->ok = 0;
-    w->done = 1;
+    (void)name;
+    if ((uint32_t)(uintptr_t)arg != s_dns.gen) return;   /* stale/abandoned request: ignore */
+    if (ipaddr) { s_dns.addr = *ipaddr; s_dns.ok = 1; } else s_dns.ok = 0;
+    s_dns.done = 1;
 }
 int eth_resolve(const char *host, ip_addr_t *out, uint32_t timeout_ms) {
-    struct dns_wait w; w.done = 0; w.ok = 0;
-    err_t e = dns_gethostbyname(host, &w.addr, eth_dns_cb, &w);
-    if (e == ERR_OK) { *out = w.addr; return 1; }          /* cached */
+    uint32_t g = ++s_dns.gen;              /* new token invalidates any abandoned prior query */
+    s_dns.done = 0; s_dns.ok = 0;
+    ip_addr_t cached;                      /* dns_gethostbyname fills this synchronously only on ERR_OK */
+    err_t e = dns_gethostbyname(host, &cached, eth_dns_cb, (void *)(uintptr_t)g);
+    if (e == ERR_OK) { *out = cached; return 1; }
     if (e != ERR_INPROGRESS) return 0;
     uint32_t t0 = millis();
-    while (!w.done) { eth_pump(); if (millis() - t0 > timeout_ms) return 0; }
-    if (w.ok) { *out = w.addr; return 1; }
+    while (!s_dns.done) { eth_pump(); if (millis() - t0 > timeout_ms) return 0; }  /* abandon: token now stale */
+    if (s_dns.ok) { *out = s_dns.addr; return 1; }
     return 0;
 }
