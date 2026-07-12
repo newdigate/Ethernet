@@ -1,0 +1,20 @@
+#######################################
+# Syntax Coloring Map Ethernet
+#######################################
+Ethernet	KEYWORD1
+EthernetClient	KEYWORD1
+EthernetServer	KEYWORD1
+EthernetUDP	KEYWORD1
+#######################################
+begin	KEYWORD2
+localIP	KEYWORD2
+connect	KEYWORD2
+available	KEYWORD2
+read	KEYWORD2
+write	KEYWORD2
+stop	KEYWORD2
+beginPacket	KEYWORD2
+endPacket	KEYWORD2
+parsePacket	KEYWORD2
+remoteIP	KEYWORD2
+remotePort	KEYWORD2
