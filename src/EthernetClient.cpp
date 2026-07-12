@@ -3,7 +3,31 @@
 #include "utility/socket_lwip.h"
 #include "lwip/tcp.h"
 
-int EthernetClient::connect(IPAddress ip, uint16_t port) { (void)ip;(void)port; return 0; } /* Task 5 */
+static err_t eth_connected_cb(void *arg, struct tcp_pcb *pcb, err_t err) {
+    (void)pcb; int i = (int)(intptr_t)arg;
+    if (err == ERR_OK) eth_conns[i].state = CONN_ESTABLISHED;
+    return ERR_OK;
+}
+
+int EthernetClient::connect(IPAddress ip, uint16_t port) {
+    int i = eth_conn_alloc();
+    if (i < 0) return 0;
+    struct tcp_pcb *pcb = tcp_new();
+    if (!pcb) { eth_conns[i].state = CONN_FREE; return 0; }
+    eth_conns[i].pcb = pcb; eth_conns[i].state = CONN_CONNECTING;
+    eth_conn_bind_callbacks(i);
+    ip_addr_t dst; IP_ADDR4(&dst, ip[0], ip[1], ip[2], ip[3]);
+    if (tcp_connect(pcb, &dst, port, eth_connected_cb) != ERR_OK) { eth_conn_free(i); return 0; }
+    _sock = i;
+    uint32_t t0 = millis();
+    while (eth_conns[i].state == CONN_CONNECTING) {
+        eth_pump();
+        if (millis() - t0 > 5000) { eth_conn_free(i); _sock = -1; return 0; }
+    }
+    if (eth_conns[i].state != CONN_ESTABLISHED) { eth_conn_free(i); _sock = -1; return 0; }
+    return 1;
+}
+
 int EthernetClient::connect(const char *host, uint16_t port) { (void)host;(void)port; return 0; } /* Task 6 */
 
 size_t EthernetClient::write(uint8_t b) { return write(&b, 1); }
