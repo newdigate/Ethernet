@@ -1,11 +1,8 @@
 MIT License
 
 Copyright (c) 2026 Nicholas Newdigate
-
-This library also incorporates code under the MIT License from the Arduino
-Ethernet library and the Teensyduino core (Copyright (c) 2018 Paul Stoffregen
-and Copyright (c) Arduino LLC); those files retain their original copyright
-headers in src/.
+Copyright (c) 2018 Paul Stoffregen
+Copyright (c) Arduino LLC
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
