@@ -1,5 +1,6 @@
 #ifndef ethernetudp_h_
 #define ethernetudp_h_
+#include <string.h>
 #include "Udp.h"
 #include "lwip/ip_addr.h"   /* ip_addr_t used in the private members below (fix: not
                                 pulled in transitively by Udp.h) */
@@ -32,5 +33,7 @@ private:
     ip_addr_t _rip; uint16_t _rport;
     ip_addr_t _dip; uint16_t _dport;
     uint8_t _txbuf[1472]; uint16_t _txlen;
+public:
+    void _enqueue(void *p, const ip_addr_t *addr, uint16_t port);
 };
 #endif
