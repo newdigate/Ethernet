@@ -10,7 +10,7 @@
 extern "C" { uint8_t g_mac[6] = {0x02,0x00,0x00,0x00,0x00,0x01}; }   /* ethernetif.c extern-refs this */
 /* eth_conns lives in socket_lwip.cpp (single definition; declared extern in
  * socket_lwip.h). Defining it here too caused a link-time "multiple definition". */
-extern "C" int enet_phy_link_up(uint32_t timeout_ms);   /* frozen core enet.c:487; 0 = poll once */
+extern "C" uint16_t enet_mdio_read(uint8_t phy, uint8_t reg);   /* frozen core enet.c:468 */
 EthernetClass Ethernet;
 
 static IPAddress from_ip4(const ip4_addr_t *a) {
@@ -27,8 +27,13 @@ void EthernetClass::netif_bringup(uint8_t *mac, const ip4_addr_t *ip, const ip4_
         _inited = true;
     }
     struct netif *n = eth_netif();
-    netif_add(n, ip, nm, gw, NULL, ethernetif_init, ethernet_input);
-    netif_set_default(n);
+    if (!_netif_added) {
+        netif_add(n, ip, nm, gw, NULL, ethernetif_init, ethernet_input);
+        netif_set_default(n);
+        _netif_added = true;
+    } else {
+        netif_set_addr(n, ip, nm, gw);      /* re-begin: reconfigure, do NOT re-add */
+    }
     netif_set_up(n);
 }
 
@@ -61,7 +66,10 @@ void EthernetClass::begin(uint8_t *mac, IPAddress ip, IPAddress dns, IPAddress g
 }
 
 int  EthernetClass::maintain() { eth_pump(); return 0; }    /* DHCP renew is automatic via timeouts */
-EthernetLinkStatus EthernetClass::linkStatus() { return enet_phy_link_up(0) ? LinkON : LinkOFF; }
+EthernetLinkStatus EthernetClass::linkStatus() {
+    (void)enet_mdio_read(3, 1);                       /* BMSR latches link-down low; read twice */
+    return (enet_mdio_read(3, 1) & 0x0004) ? LinkON : LinkOFF;
+}
 EthernetHardwareStatus EthernetClass::hardwareStatus() { return EthernetOther; }
 IPAddress EthernetClass::localIP()    { return from_ip4(netif_ip4_addr(eth_netif())); }
 IPAddress EthernetClass::subnetMask() { return from_ip4(netif_ip4_netmask(eth_netif())); }

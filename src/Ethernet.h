@@ -32,6 +32,7 @@ public:
 private:
     void netif_bringup(uint8_t *mac, const ip4_addr_t *ip, const ip4_addr_t *nm, const ip4_addr_t *gw);
     bool _inited = false;
+    bool _netif_added = false;
 };
 extern EthernetClass Ethernet;
 #include "EthernetClient.h"

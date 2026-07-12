@@ -19,12 +19,6 @@ void eth_pump(void) {
     in_pump = false;
 }
 
-static int conn_index(struct tcp_pcb *pcb) {
-    for (int i = 0; i < ETH_MAX_SOCK_NUM; i++)
-        if (eth_conns[i].state != CONN_FREE && eth_conns[i].pcb == pcb) return i;
-    return -1;
-}
-
 int eth_conn_alloc(void) {
     for (int i = 0; i < ETH_MAX_SOCK_NUM; i++)
         if (eth_conns[i].state == CONN_FREE) {
@@ -52,7 +46,7 @@ err_t eth_recv_cb(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err) {
     int i = (int)(intptr_t)arg;
     tcp_conn_t *c = &eth_conns[i];
     if (p == nullptr) { c->state = CONN_CLOSING; return ERR_OK; }   /* peer FIN; keep rx_head */
-    if (err != ERR_OK) { if (p) pbuf_free(p); return err; }
+    if (err != ERR_OK) { pbuf_free(p); return ERR_OK; }   /* p non-NULL here (FIN handled above) */
     if (c->rx_head) pbuf_cat(c->rx_head, p); else c->rx_head = p;   /* hold; recved on drain */
     return ERR_OK;
 }
@@ -74,18 +68,21 @@ void eth_conn_bind_callbacks(int i) {
 }
 
 int eth_conn_available(int i) {
+    if (i < 0 || i >= ETH_MAX_SOCK_NUM) return 0;
     tcp_conn_t *c = &eth_conns[i];
     if (!c->rx_head) return 0;
     return (int)(c->rx_head->tot_len - c->rx_off);
 }
 
 int eth_conn_peek(int i) {
+    if (i < 0 || i >= ETH_MAX_SOCK_NUM) return -1;
     tcp_conn_t *c = &eth_conns[i];
     if (!c->rx_head || c->rx_off >= c->rx_head->tot_len) return -1;
     return pbuf_get_at(c->rx_head, c->rx_off);
 }
 
 int eth_conn_read(int i, uint8_t *buf, int len) {
+    if (i < 0 || i >= ETH_MAX_SOCK_NUM) return -1;
     tcp_conn_t *c = &eth_conns[i];
     if (!c->rx_head) return -1;
     int got = 0;

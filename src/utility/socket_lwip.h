@@ -22,7 +22,7 @@ typedef struct {
 extern "C" {
 #endif
 extern tcp_conn_t eth_conns[ETH_MAX_SOCK_NUM];
-extern uint8_t    g_mac[6];         /* defined in the vendored lwip ethernetif.c */
+extern uint8_t    g_mac[6];         /* DEFINED in Ethernet.cpp; ethernetif.c only extern-refs it */
 
 struct netif *eth_netif(void);      /* the single shared netif (owned by EthernetClass) */
 void  eth_pump(void);               /* reentrancy-guarded: ethernetif_poll + sys_check_timeouts */
