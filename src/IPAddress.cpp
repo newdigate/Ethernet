@@ -33,7 +33,7 @@
 // number 0-255).  Returns true and stores the address on success.  Returns
 // false on any malformed input: wrong number of fields, empty fields, a
 // field greater than 255, or any character that is not a digit or a
-// separating dot.  On failure the stored address is unspecified.
+// separating dot.  On failure the stored address is left unchanged.
 bool IPAddress::fromString(const char *address)
 {
 	if (address == nullptr) return false;
